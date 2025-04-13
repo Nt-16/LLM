@@ -1,0 +1,7 @@
+flask
+dotenv
+flask-sqlalchemy
+flask-login 
+python-dotenv 
+pymysql
+openai

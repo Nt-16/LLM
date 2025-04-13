@@ -48,7 +48,7 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
 
-    from LLM import routes
+    from frontend import routes
     app.register_blueprint(routes.bp)
 
     return app
