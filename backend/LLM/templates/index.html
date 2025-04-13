@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}LLM Chatbot{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>LLM Chatbot</h2>
+    <div class="chat-box" id="chat-box">
+        <!-- Chat messages will appear here -->
+    </div>
+
+    <form id="chat-form">
+        <input type="text" id="user-input" placeholder="Ask something..." required />
+        <button type="submit">Send</button>
+    </form>
+</div>
+
+<script>
+    const form = document.getElementById('chat-form');
+    const chatBox = document.getElementById('chat-box');
+    const userInput = document.getElementById('user-input');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // Get the user input
+        const message = userInput.value;
+
+        // Display the user message in the chat box
+        chatBox.innerHTML += `<div class="user-message">${message}</div>`;
+
+        // Clear the input field
+        userInput.value = '';
+
+        // Send the message to the Flask backend using Fetch API
+        const response = await fetch('/ask', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ question: message }),
+        });
+
+        const data = await response.json();
+
+        // Display the bot response in the chat box
+        chatBox.innerHTML += `<div class="bot-message">${data.answer}</div>`;
+
+        // Scroll to the bottom of the chat
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+</script>
+{% endblock %}
