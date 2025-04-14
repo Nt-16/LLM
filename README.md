@@ -1,28 +1,39 @@
-# Flask Chat Application
+# LLMScribe - AI-Powered Text Editor
 
-A web-based chat application using Flask and OpenAI's GPT-4 for intelligent conversations.
+An intelligent text editing system that leverages Local Language Models (LLM) to help users improve their writing.
 
 ## Features
 
-- **User Authentication**
-  - Secure signup and login
-  - Password hashing
-  - Session management
+- **User Tiers**
+  - Free Users: Edit texts up to 20 words with cooldown period
+  - Paid Users: Unlimited text length with token system
+  - Super Users: Manage user applications and handle disputes
 
-- **Chat Interface**
-  - Real-time chat with GPT-4
-  - Message history
-  - Responsive design
+- **Core Functionality**
+  - Text input via typing or file upload
+  - LLM-powered grammar and spelling correction
+  - Interactive correction system with user approval
+  - Blacklist word filtering
+  - Self-correction options
+  - Token-based economy
+
+- **Collaborative Features**
+  - Text file sharing between paid users
+  - Collaboration invitations
+  - Dispute resolution system
+  - User statistics tracking
 
 - **Security**
-  - Environment variable protection
-  - SQL injection prevention
-  - CSRF protection
+  - Secure user authentication
+  - Token management system
+  - Protected API integration
+  - User activity monitoring
 
 ## Prerequisites
 
 - Python 3.10 or higher
-- OpenAI API key
+- Local LLM setup (Hugging Face/Ollama)
+- MySQL Database
 
 ## Setup Instructions
 
@@ -43,11 +54,11 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-4. Create `.env` file in root directory and add provided keys
+4. Configure environment variables in `.env`
 
 ## Running the Application
 
-1. Ensure virtual environment is activated:
+1. Activate virtual environment:
 ```sh
 source .venv/bin/activate
 ```
@@ -57,7 +68,15 @@ source .venv/bin/activate
 python backend/app.py
 ```
 
-3. Access the application through terminal
+3. Access the application at `http://localhost:5000`
+
+## Team Members
+
+- Sean Jenkins
+- Junaet Mahbub
+- Adama Faye
+- Rajiv Seeram
+- Nischal Thapa
 
 ## License
 
