@@ -59,22 +59,27 @@ def logout():
 @bp.route('/ask', methods=['POST'])
 def ask():
     # Get the user input from the JSON body of the POST request
-    user_input = request.json.get('question')
+    text = request.json.get('question', '')
 
+    # Define the editing prompt with strict instructions
+    editing_prompt = (
+        "Fix only spelling, grammar, and punctuation errors in the following text. "
+        "Preserve the original structure and intent of the text exactly as written. "
+        "Do not rephrase or restructure the text:\n" + text
+    )
 
     completion = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4",
         messages=[
-            {"role": "developer", "content": "You are an assistant that becomes smarter and tracks the conversation history"},
-            {
-                "role": "user",
-                "content": f'{user_input}',
-            },
+            {"role": "system", "content": "You are a proofreader. Only correct spelling, grammar, and punctuation errors. Keep the original text structure exactly as is. Do not rephrase, restructure, or modify the intent of the text."},
+            {"role": "user", "content": editing_prompt},
         ],
+        temperature=0.1  # Very low temperature for consistent, minimal editing
     )
-    answer = completion.choices[0].message.content
+    
+    edited_text = completion.choices[0].message.content
     response = {
-        'answer': f'{answer}'
+        'answer': edited_text
     }
     
     return jsonify(response)
