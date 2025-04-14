@@ -1,18 +1,31 @@
 {% extends 'base.html' %}
 
-{% block title %}LLM Chatbot{% endblock %}
+{% block title %}LLMScribe - Text Editor{% endblock %}
 
 {% block content %}
 <div class="container">
-    <h2>LLM Chatbot</h2>
-    <div class="chat-box" id="chat-box">
-        <!-- Chat messages will appear here -->
-    </div>
+    <div class="chat-container">
+        <div class="chat-box" id="chat-box">
+            <div class="welcome-message">
+                <div class="bot-message">
+                    Welcome to LLMScribe. Paste your text below for editing.
+                </div>
+            </div>
+        </div>
 
-    <form id="chat-form">
-        <input type="text" id="user-input" placeholder="Ask something..." required />
-        <button type="submit">Send</button>
-    </form>
+        <form id="chat-form" class="chat-form">
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="user-input" 
+                    placeholder="Paste text to edit..." 
+                    required 
+                    autocomplete="off"
+                />
+                <button type="submit">Edit        <i class="fas fa-pen"></i></button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
@@ -22,31 +35,31 @@
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const text = userInput.value.trim();
+        if (!text) return;
 
-        // Get the user input
-        const message = userInput.value;
-
-        // Display the user message in the chat box
-        chatBox.innerHTML += `<div class="user-message">${message}</div>`;
-
-        // Clear the input field
+        chatBox.innerHTML += `<div class="user-message">${text}</div>`;
         userInput.value = '';
+        
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'bot-message';
+        loadingDiv.textContent = 'Editing...';
+        chatBox.appendChild(loadingDiv);
 
-        // Send the message to the Flask backend using Fetch API
-        const response = await fetch('/ask', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ question: message }),
-        });
+        try {
+            const response = await fetch('/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: text }),
+            });
+            const data = await response.json();
+            chatBox.removeChild(loadingDiv);
+            chatBox.innerHTML += `<div class="bot-message">${data.answer}</div>`;
+        } catch (error) {
+            chatBox.removeChild(loadingDiv);
+            chatBox.innerHTML += `<div class="bot-message">Error occurred. Please try again.</div>`;
+        }
 
-        const data = await response.json();
-
-        // Display the bot response in the chat box
-        chatBox.innerHTML += `<div class="bot-message">${data.answer}</div>`;
-
-        // Scroll to the bottom of the chat
         chatBox.scrollTop = chatBox.scrollHeight;
     });
 </script>

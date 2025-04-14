@@ -1,14 +1,39 @@
 {% extends 'base.html' %}
 
-{% block title %}Login - MyWebsite{% endblock %}
+{% block title %}Login - LLMScribe{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h2>Login</h2>
-    <form id="login-form">
-        <input type="email" id="email" placeholder="Email" required />
-        <input type="password" id="password" placeholder="Password" required />
-        <button type="submit">Login</button>
-    </form>
+<div class="container auth-container">
+    <div class="auth-box">
+        <h2>LOGIN</h2>
+        <form id="login-form">
+            <div class="form-group">
+                <input type="email" id="email" placeholder="Email" required />
+            </div>
+            <div class="form-group">
+                <input type="password" id="password" placeholder="Password" required />
+            </div>
+            <div class="remember-me">
+                <label>
+                    <input type="checkbox"> Remember me
+                </label>
+            </div>
+            <button type="submit" class="auth-button">LOGIN</button>
+            
+            <div class="divider">Or login with</div>
+            
+            <div class="social-login">
+                <button type="button" class="social-btn facebook">
+                    <i class="fab fa-facebook-f"></i> Facebook
+                </button>
+                <button type="button" class="social-btn google">
+                    <i class="fab fa-google"></i> Google
+                </button>
+            </div>
+        </form>
+        <div class="auth-footer">
+            <p>Not a member? <a href="/signup">Sign up now</a></p>
+        </div>
+    </div>
 </div>
 {% endblock %}
