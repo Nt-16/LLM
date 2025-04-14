@@ -28,7 +28,7 @@ A web-based chat application using Flask and OpenAI's GPT-4 for intelligent conv
 
 1. Clone and navigate to the project:
 ```sh
-git clone <repository-url>
+git clone https://github.com/Jdawg0309/LLM.git
 cd LLM
 ```
 
