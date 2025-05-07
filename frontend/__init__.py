@@ -26,11 +26,11 @@ def create_app():
     load_dotenv()
 
     # Get database credentials from environment variables
-    db_username = os.getenv('DB_USERNAME', 'root')
-    db_password = os.getenv('DB_PASSWORD', '')
-    db_host = os.getenv('DB_HOST', 'project322.cr2mqca8ek5f.us-east-2.rds.amazonaws.com')
-    db_port = os.getenv('DB_PORT', '3306')
-    db_name = os.getenv('DB_NAME', 'project322')
+    db_username = os.getenv('DB_USERNAME')
+    db_password = os.getenv('DB_PASSWORD')
+    db_host = os.getenv('DB_HOST')
+    db_port = os.getenv('DB_PORT')
+    db_name = os.getenv('DB_NAME')
 
     try:
         db_port = int(db_port)
@@ -42,7 +42,7 @@ def create_app():
         f"mysql+pymysql://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}"
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default_secret_key')
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
     # Initialize extensions with the app
     db.init_app(app)
