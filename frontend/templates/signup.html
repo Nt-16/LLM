@@ -6,20 +6,23 @@
 <div class="container auth-container">
     <div class="auth-box">
         <h2>SIGN UP</h2>
-        <form id="signup-form">
+        <form id="signup-form" method="POST">
             <div class="form-group">
-                <input type="text" id="name" placeholder="Username" required />
+                <input type="text" name="username" placeholder="Username" required />
             </div>
             <div class="form-group">
-                <input type="email" id="email" placeholder="Email" required />
+                <input type="email" name="email" placeholder="Email" required />
             </div>
             <div class="form-group">
-                <input type="password" id="password" placeholder="Password" required />
+                <input type="password" name="password" placeholder="Password" required />
+            </div>
+            <div class="form-group">
+                <input type="password" name="confirm_password" placeholder="Confirm Password" required />
             </div>
             <button type="submit" class="auth-button">CREATE ACCOUNT</button>
         </form>
         <div class="auth-footer">
-            <p>Already have an account? <a href="/login">Login</a></p>
+            <p>Already have an account? <a href="{{ url_for('main.login') }}">Login</a></p>
         </div>
     </div>
 </div>

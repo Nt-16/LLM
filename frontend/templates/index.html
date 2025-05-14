@@ -5,12 +5,18 @@
 {% block content %}
 <div class="container">
     <div class="chat-container">
-        <div class="chat-box" id="chat-box">
+        {% if current_user.is_authenticated %}
             <div class="welcome-message">
-                <div class="bot-message">
-                    Welcome to LLMScribe. Paste your text below for editing.
-                </div>
+                <div class="user-message">Welcome, {{ current_user.username }}!</div>
             </div>
+        {% else %}
+            <div class="welcome-message">
+                <div class="bot-message">Welcome to LLMScribe. Please log in to get started.</div>
+            </div>
+        {% endif %}
+
+        <div class="chat-box" id="chat-box">
+            <!-- message display will go here -->
         </div>
 
         <form id="chat-form" class="chat-form">
@@ -27,40 +33,4 @@
         </form>
     </div>
 </div>
-
-<script>
-    const form = document.getElementById('chat-form');
-    const chatBox = document.getElementById('chat-box');
-    const userInput = document.getElementById('user-input');
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const text = userInput.value.trim();
-        if (!text) return;
-
-        chatBox.innerHTML += `<div class="user-message">${text}</div>`;
-        userInput.value = '';
-        
-        const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'bot-message';
-        loadingDiv.textContent = 'Editing...';
-        chatBox.appendChild(loadingDiv);
-
-        try {
-            const response = await fetch('/ask', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: text }),
-            });
-            const data = await response.json();
-            chatBox.removeChild(loadingDiv);
-            chatBox.innerHTML += `<div class="bot-message">${data.answer}</div>`;
-        } catch (error) {
-            chatBox.removeChild(loadingDiv);
-            chatBox.innerHTML += `<div class="bot-message">Error occurred. Please try again.</div>`;
-        }
-
-        chatBox.scrollTop = chatBox.scrollHeight;
-    });
-</script>
 {% endblock %}

@@ -6,16 +6,20 @@
 <div class="container auth-container">
     <div class="auth-box">
         <h2>LOGIN</h2>
-        <form id="login-form">
+        <!-- ✅ Added method="POST" for Flask compatibility -->
+        <form id="login-form" method="POST">
             <div class="form-group">
-                <input type="email" id="email" placeholder="Email" required />
+                <!-- ✅ Added name="email" to keep Flask working -->
+                <input type="email" id="email" name="email" placeholder="Email" required />
             </div>
             <div class="form-group">
-                <input type="password" id="password" placeholder="Password" required />
+                <!-- ✅ Added name="password" to keep Flask working -->
+                <input type="password" id="password" name="password" placeholder="Password" required />
             </div>
             <div class="remember-me">
                 <label>
-                    <input type="checkbox"> Remember me
+                    <!-- (optional) ✅ name="remember" if you want Flask-Login's remember feature -->
+                    <input type="checkbox" name="remember"> Remember me
                 </label>
             </div>
             <button type="submit" class="auth-button">LOGIN</button>
