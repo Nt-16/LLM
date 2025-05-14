@@ -6,9 +6,7 @@
 <div class="container">
     <div class="chat-container">
         {% if current_user.is_authenticated %}
-            <div class="welcome-message">
-                <div class="user-message">Welcome, {{ current_user.username }}!</div>
-            </div>
+            <h1><center>Welcome, {{ current_user.username }}!</center></h1>
         {% else %}
             <div class="welcome-message">
                 <div class="bot-message">Welcome to LLMScribe. Please log in to get started.</div>
@@ -16,7 +14,7 @@
         {% endif %}
 
         <div class="chat-box" id="chat-box">
-            <!-- message display will go here -->
+            <!-- Messages will appear here -->
         </div>
 
         <form id="chat-form" class="chat-form">
@@ -28,9 +26,100 @@
                     required 
                     autocomplete="off"
                 />
-                <button type="submit">Edit        <i class="fas fa-pen"></i></button>
+                <button type="submit">Edit <i class="fas fa-pen"></i></button>
             </div>
         </form>
     </div>
 </div>
+
+<!-- Add this JavaScript block -->
+<script>
+document.getElementById('chat-form').addEventListener('submit', function(e) {
+    e.preventDefault(); // Prevent page refresh
+    
+    const input = document.getElementById('user-input');
+    const chatBox = document.getElementById('chat-box');
+    
+    // Add user's original text to chat box
+    chatBox.innerHTML += `
+        <div class="user-message">
+            <strong>Original:</strong> ${input.value}
+        </div>
+    `;
+
+    // Show loading state
+    chatBox.innerHTML += '<div class="bot-message">Editing your text...</div>';
+    
+    // Scroll to bottom
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    // Send to Flask backend
+    fetch('/ask', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            question: input.value
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Remove loading message
+        chatBox.lastElementChild.remove();
+        
+        // Add edited text
+        chatBox.innerHTML += `
+            <div class="bot-message">
+                <strong>Edited:</strong> ${data.answer}
+            </div>
+        `;
+        
+        // Clear input
+        input.value = '';
+        
+        // Scroll to bottom again
+        chatBox.scrollTop = chatBox.scrollHeight;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        chatBox.innerHTML += '<div class="error-message">Error processing request</div>';
+    });
+});
+</script>
+
+<style>
+/* Add these styles for messages */
+.user-message {
+    color: #27ae60;
+    background: #e3f2fd;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 10px;
+}
+
+.bot-message {
+    color: #2980b9;
+    background: #f5f5f5;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 10px;
+}
+
+.error-message {
+    background: #ffebee;
+    color: #b71c1c;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 10px;
+}
+
+.chat-box {
+    height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    margin: 20px 0;
+    padding: 10px;
+}
+</style>
 {% endblock %}
