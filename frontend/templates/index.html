@@ -4,122 +4,260 @@
 
 {% block content %}
 <div class="container">
-    <div class="chat-container">
+    <div class="editor-container">
         {% if current_user.is_authenticated %}
-            <h1><center>Welcome, {{ current_user.username }}!</center></h1>
+            <div class="dashboard-header">
+                <h1>Welcome, {{ current_user.username }}!</h1>
+                {% if current_user.user_type == 'paid' %}
+                <div class="dashboard-panel">
+                    <div class="token-balance">
+                        <i class="fas fa-coins"></i>
+                        <span>{{ current_user.balance }} tokens</span>
+                    </div>
+                    <div class="usage-stats">
+                        <div>Corrections Made: {{ correction_count }}</div>
+                        <div>Words Processed: {{ word_count }}</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
         {% else %}
             <div class="welcome-message">
                 <div class="bot-message">Welcome to LLMScribe. Please log in to get started.</div>
             </div>
         {% endif %}
 
-        <div class="chat-box" id="chat-box">
-            <!-- Messages will appear here -->
+        <div class="editor-area">
+            <textarea id="text-input" 
+                      {% if current_user.user_type == 'free' %}maxlength="20"{% endif %}
+                      placeholder="{% if current_user.user_type == 'free' %}Enter text (max 20 words){% else %}Enter your text here...{% endif %}"
+                      rows="6"></textarea>
+            
+            <div class="action-bar">
+                <button id="self-correct" class="btn-secondary">
+                    <i class="fas fa-edit"></i> Self-Correct
+                </button>
+                <button id="llm-correct" class="btn-primary">
+                    <i class="fas fa-robot"></i> AI Correct
+                </button>
+                <span class="word-counter">0/{% if current_user.user_type == 'free' %}20{% else %}∞{% endif %}</span>
+            </div>
         </div>
 
-        <form id="chat-form" class="chat-form">
-            <div class="input-group">
-                <input 
-                    type="text" 
-                    id="user-input" 
-                    placeholder="Paste text to edit..." 
-                    required 
-                    autocomplete="off"
-                />
-                <button type="submit">Edit <i class="fas fa-pen"></i></button>
-            </div>
-        </form>
+        <div class="correction-panel" id="correction-results">
+            <!-- Correction results will appear here -->
+        </div>
     </div>
 </div>
 
-<!-- Add this JavaScript block -->
 <script>
-document.getElementById('chat-form').addEventListener('submit', function(e) {
-    e.preventDefault(); // Prevent page refresh
+document.getElementById('llm-correct').addEventListener('click', function(e) {
+    e.preventDefault();
+    processText('llm');
+});
+
+document.getElementById('self-correct').addEventListener('click', function(e) {
+    e.preventDefault();
+    processText('self');
+});
+
+function processText(correctionType) {
+    const input = document.getElementById('text-input');
+    const resultsPanel = document.getElementById('correction-results');
+    const text = input.value.trim();
     
-    const input = document.getElementById('user-input');
-    const chatBox = document.getElementById('chat-box');
-    
-    // Add user's original text to chat box
-    chatBox.innerHTML += `
-        <div class="user-message">
-            <strong>Original:</strong> ${input.value}
-        </div>
-    `;
+    if (!text) {
+        alert('Please enter some text');
+        return;
+    }
 
     // Show loading state
-    chatBox.innerHTML += '<div class="bot-message">Editing your text...</div>';
+    resultsPanel.innerHTML = '<div class="bot-message">Processing your text...</div>';
     
-    // Scroll to bottom
-    chatBox.scrollTop = chatBox.scrollHeight;
-
-    // Send to Flask backend
-    fetch('/ask', {
+    fetch(`/${correctionType}-correct`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            question: input.value
+            text: text,
+            correction_type: correctionType
         }),
     })
     .then(response => response.json())
     .then(data => {
-        // Remove loading message
-        chatBox.lastElementChild.remove();
+        if (data.error) {
+            resultsPanel.innerHTML = `<div class="error-message">${data.error}</div>`;
+            return;
+        }
+
+        let resultHTML = `
+            <div class="correction-item">
+                <div class="original-text">
+                    <strong>Original:</strong> ${data.original}
+                </div>
+                <div class="corrected-text">
+                    <strong>Corrected:</strong> ${data.corrected}
+                </div>`;
         
-        // Add edited text
-        chatBox.innerHTML += `
-            <div class="bot-message">
-                <strong>Edited:</strong> ${data.answer}
-            </div>
-        `;
+        if (correctionType === 'llm') {
+            resultHTML += `
+                <div class="correction-actions">
+                    <button class="btn-accept">Accept</button>
+                    <button class="btn-reject">Reject</button>
+                </div>`;
+        }
         
-        // Clear input
-        input.value = '';
-        
-        // Scroll to bottom again
-        chatBox.scrollTop = chatBox.scrollHeight;
+        resultHTML += `</div>`;
+        resultsPanel.innerHTML = resultHTML;
     })
     .catch(error => {
         console.error('Error:', error);
-        chatBox.innerHTML += '<div class="error-message">Error processing request</div>';
+        resultsPanel.innerHTML = '<div class="error-message">Error processing request</div>';
     });
+}
+
+// Word counter logic
+document.getElementById('text-input').addEventListener('input', function(e) {
+    const text = e.target.value;
+    const wordCount = text.trim().split(/\s+/).length;
+    const maxWords = {{ 20 if current_user.user_type == 'free' else 'Infinity' }};
+    document.querySelector('.word-counter').textContent = 
+        `${wordCount}/${maxWords !== Infinity ? maxWords : '∞'}`;
 });
 </script>
 
 <style>
-/* Add these styles for messages */
-.user-message {
-    color: #27ae60;
-    background: #e3f2fd;
-    padding: 10px;
-    margin: 10px;
-    border-radius: 10px;
+.editor-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 2rem;
 }
 
-.bot-message {
-    color: #2980b9;
-    background: #f5f5f5;
-    padding: 10px;
-    margin: 10px;
-    border-radius: 10px;
+.dashboard-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.dashboard-panel {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.token-balance {
+    background: #ffd700;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+.editor-area {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+#text-input {
+    width: 100%;
+    min-height: 200px;
+    padding: 1rem;
+    border: none;
+    resize: vertical;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.action-bar {
+    margin-top: 1rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.btn-primary {
+    background: #3498db;
+    color: white;
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.word-counter {
+    margin-left: auto;
+    color: #6c757d;
+}
+
+.correction-panel {
+    margin-top: 2rem;
+    border-top: 2px solid #eee;
+    padding-top: 1rem;
+}
+
+.correction-item {
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: #f8f9fa;
+}
+
+.original-text {
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.corrected-text {
+    color: #28a745;
+    margin: 1rem 0;
+}
+
+.correction-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.highlight {
+    background-color: #fff3cd;
+    padding: 2px 4px;
+    border-radius: 3px;
 }
 
 .error-message {
     background: #ffebee;
-    color: #b71c1c;
-    padding: 10px;
-    margin: 10px;
-    border-radius: 10px;
+    color: #dc3545;
+    padding: 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
 }
 
-.chat-box {
-    height: 400px;
-    overflow-y: auto;
-    border: 1px solid #ddd;
-    margin: 20px 0;
-    padding: 10px;
+.bot-message {
+    background: #e2f0ff;
+    color: #004085;
+    padding: 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
 }
 </style>
 {% endblock %}

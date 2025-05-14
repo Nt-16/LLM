@@ -76,63 +76,195 @@ def logout():
     return redirect(url_for('main.home'))
 
 @bp.route('/ask', methods=['POST'])
+@login_required
 def ask():
+    if check_cooldown():
+        return redirect(url_for('main.home'))
+    
+    text = request.form.get('text', '')
+    words = text.split()
+    
+    # Free user word limit
+    if current_user.user_type == 'free' and len(words) > 20:
+        flash('Free users limited to 20 words', 'danger')
+        return redirect(url_for('main.home'))
+    
+    # Token check
+    required_tokens = len(words)
+    if current_user.balance < required_tokens:
+        if current_user.user_type == 'paid':
+            current_user.balance = max(0, current_user.balance - (required_tokens // 2))
+            db.session.commit()
+            flash('Insufficient tokens - 50% penalty applied', 'danger')
+        else:
+            flash('Please upgrade to paid plan for more capacity', 'warning')
+        return redirect(url_for('main.home'))
+    
+    # Process with OpenAI
     try:
-        # Request logging
-        current_app.logger.debug("\n=== INCOMING REQUEST ===")
-        current_app.logger.debug(f"Headers: {dict(request.headers)}")
-        current_app.logger.debug(f"Raw JSON: {request.get_data(as_text=True)}")
-
-        # Validate input
-        if not request.is_json:
-            current_app.logger.error("Invalid request: Not JSON")
-            return jsonify({"error": "Request must be JSON"}), 400
-            
-        text = request.json.get('question', '').strip()
-        if not text:
-            current_app.logger.error("Empty question received")
-            return jsonify({"error": "No text provided"}), 400
-
-        current_app.logger.debug(f"\n--- USER INPUT ---\n{text}\n")
-
-        # Create prompt
-        editing_prompt = (
-            "Fix only spelling, grammar, and punctuation errors in the following text. "
-            "Preserve the original structure and intent exactly as written. "
-            "Do not rephrase or restructure. Text:\n" + text
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[{
+                "role": "system",
+                "content": "Highlight changes with <mark> tags"
+            }, {
+                "role": "user",
+                "content": text
+            }]
         )
-
-        try:
-            # API call
-            completion = client.chat.completions.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You are a professional proofreader. Only fix technical writing errors without changing meaning."},
-                    {"role": "user", "content": editing_prompt},
-                ],
-                temperature=0.1,
-                max_tokens=2000
-            )
-        except openai.APIConnectionError as e:
-            current_app.logger.error(f"API Connection Error: {str(e)}")
-            return jsonify({"error": "Connection to AI service failed"}), 500
-        except openai.RateLimitError as e:
-            current_app.logger.error(f"Rate Limit Error: {str(e)}")
-            return jsonify({"error": "AI service overloaded, please try again later"}), 429
-        except openai.APIError as e:
-            current_app.logger.error(f"API Error: {str(e)}")
-            return jsonify({"error": "AI service error"}), 500
-
-        # Validate response
-        if not completion.choices or not completion.choices[0].message.content:
-            current_app.logger.error("Invalid API response structure")
-            return jsonify({"error": "AI service returned unexpected format"}), 500
-
-        edited_text = completion.choices[0].message.content
-        current_app.logger.debug(f"\n--- EDITED TEXT ---\n{edited_text}\n")
-
-        return jsonify({'answer': edited_text})
-
+        
+        # Deduct tokens
+        current_user.balance -= required_tokens
+        current_user.last_submission = datetime.utcnow()
+        db.session.commit()
+        
+        return render_template('result.html', 
+                            original=text,
+                            corrected=response.choices[0].message.content)
+    
     except Exception as e:
-        current_app.logger.error(f"Unhandled Error: {str(e)}", exc_info=True)
-        return jsonify({"error": "Internal server error"}), 500
+        current_app.logger.error(f"OpenAI Error: {str(e)}")
+        flash('Error processing your request', 'danger')
+        return redirect(url_for('main.home'))
+    
+
+@bp.route('/submit', methods=['POST'])
+@login_required
+def submit_text():
+    # Free user cooldown check
+    if current_user.user_type == 'free':
+        if current_user.last_submission and \
+           (datetime.utcnow() - current_user.last_submission) < timedelta(minutes=3):
+            return jsonify({'error': 'Free user cooldown active'}), 429
+
+    # Word count validation
+    text = request.json.get('text', '')
+    word_count = len(text.split())
+    
+    if current_user.user_type == 'free' and word_count > 20:
+        current_user.last_submission = datetime.utcnow()
+        db.session.commit()
+        return jsonify({'error': 'Free user word limit exceeded'}), 400
+
+    # Process blacklist words
+    blacklisted_words = Blacklist.query.filter_by(status='approved').all()
+    processed_text, penalty = process_blacklist(text, blacklisted_words)
+    
+    # Token management
+    required_tokens = word_count + penalty
+    if current_user.balance < required_tokens:
+        if current_user.user_type == 'paid':
+            current_user.balance = max(0, current_user.balance - (required_tokens // 2))
+            db.session.commit()
+        return jsonify({'error': 'Insufficient tokens'}), 402
+
+    # Deduct tokens
+    current_user.balance -= required_tokens
+    db.session.add(TokenTransaction(
+        user_id=current_user.id,
+        amount=-required_tokens,
+        transaction_type='usage'
+    ))
+    
+    # Save correction history
+    correction = CorrectionHistory(
+        user_id=current_user.id,
+        original_text=text,
+        corrected_text=processed_text,
+        correction_type='self',
+        tokens_used=required_tokens
+    )
+    db.session.add(correction)
+    db.session.commit()
+    
+    return jsonify({'processed_text': processed_text})
+
+@bp.route('/llm-correct', methods=['POST'])
+@login_required
+def llm_correct():
+    try:
+        text = request.json.get('text', '')
+        
+        # Free user word limit check
+        if current_user.user_type == 'free':
+            word_count = len(text.split())
+            if word_count > 20:
+                return jsonify({
+                    'error': 'Free users limited to 20 words'
+                }), 402
+
+        # Process with OpenAI
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[{
+                "role": "system",
+                "content": "Highlight changes with <mark class='llm-correction'> tags"
+            }, {
+                "role": "user",
+                "content": text
+            }]
+        )
+        
+        return jsonify({
+            'original': text,
+            'corrected': response.choices[0].message.content
+        })
+    
+    except Exception as e:
+        current_app.logger.error(f"LLM Correction Error: {str(e)}")
+        return jsonify({'error': 'AI processing failed'}), 500
+
+@bp.route('/self-correct', methods=['POST'])
+@login_required
+def self_correct():
+    try:
+        text = request.json.get('text', '')
+        processed_text = process_blacklist(text)
+        
+        # Calculate token cost
+        original_words = len(text.split())
+        processed_words = len(processed_text.split())
+        token_cost = max(0, original_words - processed_words) // 2
+        
+        # Update user balance
+        current_user.balance -= token_cost
+        db.session.commit()
+        
+        return jsonify({
+            'original': text,
+            'corrected': processed_text,
+            'tokens_used': token_cost
+        })
+    
+    except Exception as e:
+        current_app.logger.error(f"Self Correction Error: {str(e)}")
+        return jsonify({'error': 'Self-correction failed'}), 500
+
+def process_blacklist(text):
+    # Get approved blacklist entries
+    blacklist = Blacklist.query.filter_by(status='approved').all()
+    for entry in blacklist:
+        text = text.replace(entry.word, '*' * len(entry.word))
+    return text
+
+@bp.route('/upgrade', methods=['POST'])
+@login_required
+def upgrade_account():
+    if current_user.user_type != 'free':
+        flash('You are already a paid user', 'info')
+        return redirect(url_for('main.home'))
+    
+    # Add payment processing logic here
+    current_user.user_type = 'paid'
+    db.session.commit()
+    flash('Account upgraded successfully!', 'success')
+    return redirect(url_for('main.home'))
+
+def check_cooldown():
+    if current_user.user_type == 'free' and current_user.last_submission:
+        remaining = (current_user.last_submission + 
+                    timedelta(minutes=3) - datetime.utcnow()).seconds // 60
+        if remaining > 0:
+            flash(f'Free users can only submit every 3 minutes ({remaining} min remaining)', 'warning')
+            return True
+    return False
