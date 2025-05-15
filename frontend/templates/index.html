@@ -76,7 +76,7 @@ function processText(correctionType) {
     // Show loading state
     resultsPanel.innerHTML = '<div class="bot-message">Processing your text...</div>';
     
-    fetch(`/${correctionType}-correct`, {
+    fetch(`/editor/${correctionType}-correct`, {  // Changed from /${correctionType}-correct
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

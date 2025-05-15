@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template
 from flask_login import current_user
-from backend.models import User, TokenTransaction, Blacklist, CorrectionHistory
+from backend.models import User, TokenTransaction, Blacklist, CorrectionHistory  # Updated import path
 from backend import db
 
 main_bp = Blueprint('main', __name__)

@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import func
-from backend.models.models import User
+from backend.models import User  # Updated import path
 from backend import db
 
 auth_bp = Blueprint('auth', __name__)

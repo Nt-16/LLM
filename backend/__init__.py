@@ -40,7 +40,7 @@ def create_app():
     login_manager.init_app(app)
 
     # User Loader function
-    from backend.models import User, TokenTransaction, Blacklist, CorrectionHistory
+    from backend.models import User  # Updated import path
 
     @login_manager.user_loader
     def load_user(user_id):
