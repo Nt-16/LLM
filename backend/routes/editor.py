@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app, flash
+from flask import Blueprint, request, jsonify, current_app, flash, url_for
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 from openai import OpenAI
@@ -22,7 +22,7 @@ def check_cooldown():
     return False
 
 @editor_bp.route('/llm-correct', methods=['POST'])
-@login_required
+@login_required  # This will automatically redirect to login if user is not authenticated
 def llm_correct():
     if check_cooldown():
         return jsonify({'error': 'Free users can submit once every 3 minutes'}), 429
