@@ -1,6 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_user, logout_user, login_required, current_user
-from frontend.models import User, db
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
@@ -10,7 +9,8 @@ import logging
 from datetime import datetime, timedelta
 # Add at the top
 from datetime import datetime, timedelta
-from frontend.models import Blacklist, TokenTransaction, CorrectionHistory
+from backend.models.models import User, Blacklist, TokenTransaction, CorrectionHistory
+from backend import db
 
 bp = Blueprint('main', __name__)
 load_dotenv()  # Load environment variables explicitly
@@ -28,10 +28,13 @@ def handle_error(message, code):
 
 @bp.route('/')
 def home():
-    return render_template('index.html', username=current_user.username if current_user.is_authenticated else None)
-
     if current_user.is_authenticated:
-        return render_template('index.html', username=current_user.username)
+        # Add these queries for dashboard
+        correction_count = CorrectionHistory.query.filter_by(user_id=current_user.id).count()
+        word_count = db.session.query(db.func.sum(CorrectionHistory.tokens_used)).filter_by(user_id=current_user.id).scalar() or 0
+        return render_template('index.html', 
+                             correction_count=correction_count,
+                             word_count=word_count)
     return render_template('index.html')
 
 @bp.route('/login', methods=['GET', 'POST'])

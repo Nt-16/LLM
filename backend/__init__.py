@@ -8,7 +8,9 @@ db = SQLAlchemy()
 login_manager = LoginManager()
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__,
+                template_folder='../frontend/templates',
+                static_folder='../frontend/static')
 
     # Load environment variables
     load_dotenv()
@@ -38,7 +40,7 @@ def create_app():
     login_manager.init_app(app)
 
     # User Loader function
-    from frontend.models import User
+    from backend.models.models import User
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -47,7 +49,7 @@ def create_app():
     login_manager.login_view = 'main.login'
 
     # Register routes
-    from frontend.routes import bp
+    from backend.routes.routes import bp
     app.register_blueprint(bp)
 
     return app

@@ -53,11 +53,6 @@ document.getElementById('llm-correct').addEventListener('click', function(e) {
     processText('llm');
 });
 
-document.getElementById('self-correct').addEventListener('click', function(e) {
-    e.preventDefault();
-    processText('self');
-});
-
 function processText(correctionType) {
     const input = document.getElementById('text-input');
     const resultsPanel = document.getElementById('correction-results');
