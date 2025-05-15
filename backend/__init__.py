@@ -40,16 +40,16 @@ def create_app():
     login_manager.init_app(app)
 
     # User Loader function
-    from backend.models.models import User
+    from backend.models import User, TokenTransaction, Blacklist, CorrectionHistory
 
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    login_manager.login_view = 'main.login'
+    login_manager.login_view = 'auth.login'  # Update this to use auth blueprint
 
-    # Register routes
-    from backend.routes.routes import bp
-    app.register_blueprint(bp)
+    # Register routes using the new blueprint structure
+    from backend.routes import init_routes
+    init_routes(app)
 
     return app
