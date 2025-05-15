@@ -5,44 +5,53 @@
 {% block content %}
 <div class="container">
     <div class="editor-container">
+        <div class="chatbot-header">
+            <h2>
+                <i class="fas fa-robot"></i>
+                LLMScribe Assistant
+                <i class="fas fa-chevron-down"></i>
+            </h2>
+        </div>
+
         {% if current_user.is_authenticated %}
-            <div class="dashboard-header">
-                <h1>Welcome, {{ current_user.username }}!</h1>
+            <div class="dashboard-stats">
                 {% if current_user.user_type == 'paid' %}
-                <div class="dashboard-panel">
                     <div class="token-balance">
                         <i class="fas fa-coins"></i>
                         <span>{{ current_user.balance }} tokens</span>
                     </div>
-                    <div class="usage-stats">
-                        <div>Corrections Made: {{ correction_count }}</div>
-                        <div>Words Processed: {{ word_count }}</div>
-                    </div>
-                </div>
                 {% endif %}
-            </div>
-        {% else %}
-            <div class="welcome-message">
-                <div class="bot-message">Welcome to LLMScribe. Please log in to get started.</div>
             </div>
         {% endif %}
 
-        <div class="editor-area">
-            <textarea id="text-input" 
-                      {% if current_user.user_type == 'free' %}data-max-words="20"{% endif %}
-                      placeholder="{% if current_user.user_type == 'free' %}Enter text (max 20 words){% else %}Enter your text here...{% endif %}"
-                      rows="6"></textarea>
+        <div class="chat-area">
+            <div class="messages-container" id="correction-results">
+                {% if current_user.is_authenticated %}
+                    <div class="bot-message">
+                        Hello {{ current_user.username }}! Please enter your text for correction.
+                    </div>
+                {% else %}
+                    <div class="bot-message">
+                        Welcome to LLMScribe. Please log in to get started.
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="input-area">
+                <textarea id="text-input" 
+                          {% if current_user.user_type == 'free' %}data-max-words="20"{% endif %}
+                          placeholder="{% if current_user.user_type == 'free' %}Enter text (max 20 words){% else %}Enter your text here...{% endif %}"></textarea>
+                
+                <div class="action-bar">
+                    <button id="llm-correct" class="send-button" title="AI Correct">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
             
-            <div class="action-bar">
-                <button id="llm-correct" class="btn-primary">
-                    <i class="fas fa-robot"></i> AI Correct
-                </button>
+            <div class="word-counter-container">
                 <span class="word-counter">0/{% if current_user.user_type == 'free' %}20{% else %}∞{% endif %}</span>
             </div>
-        </div>
-
-        <div class="correction-panel" id="correction-results">
-            <!-- Correction results will appear here -->
         </div>
     </div>
 </div>
