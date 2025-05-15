@@ -46,8 +46,11 @@ def signup():
         db.session.add(new_user)
         db.session.commit()
 
+        # Automatically log in the user after signup
+        login_user(new_user)
         flash('Account created successfully!', 'success')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('main.home'))
+        
     return render_template('signup.html')
 
 @auth_bp.route('/logout')
